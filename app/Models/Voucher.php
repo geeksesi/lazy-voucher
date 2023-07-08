@@ -28,10 +28,18 @@ class Voucher extends Model
         'usage_limit_type' => VoucherUsageLimitTypeEnum::class
     ];
 
+    // VoucherAble relations
 
     public function products(): MorphToMany
     {
         return $this->morphedByMany(Product::class, 'voucher_able', 'voucher_ables');
+    }
+
+    // Redeemer relations
+
+    public function users(): MorphToMany
+    {
+        return $this->morphedByMany(User::class, 'redeemer', 'redeemers');
     }
 
     public function scopeByCode(Builder $query, string $code): Builder

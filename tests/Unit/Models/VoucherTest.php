@@ -3,6 +3,7 @@
 namespace Tests\Unit\Models;
 
 use App\Models\Product;
+use App\Models\User;
 use App\Models\Voucher;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
@@ -44,6 +45,21 @@ class VoucherTest extends TestCase
             'voucher_id' => $voucher->id,
             'voucher_able_id' => $product->id,
             'voucher_able_type' => Product::class
+        ]);
+    }
+
+    public function test_voucher_could_have_many_redeemers_like_user()
+    {
+        Voucher::factory()->count(3)->create();
+
+        $voucher = Voucher::factory()->create();
+        $user = User::factory()->hasAttached($voucher)->create();
+
+        $this->assertEquals(1, $voucher->users()->count());
+        $this->assertDatabaseHas('redeemers', [
+            'voucher_id' => $voucher->id,
+            'redeemer_id' => $user->id,
+            'redeemer_type' => User::class
         ]);
     }
 }
