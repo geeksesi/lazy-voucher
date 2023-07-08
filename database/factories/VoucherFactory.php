@@ -20,7 +20,7 @@ class VoucherFactory extends Factory
     public function definition(): array
     {
         return [
-            'code' => fake()->shuffleString(),
+            'code' => str_replace(" ", "_", fake()->realText()),
             'amount' => rand(10, 90),
             'amount_type' => Arr::random(VoucherAmountTypeEnum::cases()),
             'usage_limit' => rand(1, 90),
