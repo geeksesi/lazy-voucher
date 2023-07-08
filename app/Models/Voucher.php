@@ -7,6 +7,8 @@ use App\Enums\VoucherUsageLimitTypeEnum;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
 
 class Voucher extends Model
 {
@@ -26,6 +28,11 @@ class Voucher extends Model
         'usage_limit_type' => VoucherUsageLimitTypeEnum::class
     ];
 
+
+    public function products(): MorphToMany
+    {
+        return $this->morphedByMany(Product::class, 'voucher_able', 'voucher_ables');
+    }
 
     public function scopeByCode(Builder $query, string $code): Builder
     {
