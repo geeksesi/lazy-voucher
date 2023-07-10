@@ -17,7 +17,7 @@ class VoucherTest extends TestCase
     {
         $voucher = Voucher::factory()->create(['expired_at' => now()->addDay()]);
         $foundedVoucherByCode = Voucher::ByCode($voucher->code)->first();
-        $foundedVoucherByCodeAndNotExpired = Voucher::notExpiredByCode($voucher->code)->first();
+        $foundedVoucherByCodeAndNotExpired = Voucher::ByCode($voucher->code)->notExpired($voucher->code)->first();
 
         $this->assertEquals($foundedVoucherByCode->id, $voucher->id);
         $this->assertEquals($foundedVoucherByCodeAndNotExpired->id, $voucher->id);
@@ -27,7 +27,7 @@ class VoucherTest extends TestCase
     {
         $voucher = Voucher::factory()->create(['expired_at' => null]);
         $foundedVoucherByCode = Voucher::ByCode($voucher->code)->first();
-        $foundedVoucherByCodeAndNotExpired = Voucher::notExpiredByCode($voucher->code)->first();
+        $foundedVoucherByCodeAndNotExpired = Voucher::ByCode($voucher->code)->notExpired($voucher->code)->first();
 
         $this->assertEquals($foundedVoucherByCode->id, $voucher->id);
         $this->assertEquals($foundedVoucherByCodeAndNotExpired->id, $voucher->id);
