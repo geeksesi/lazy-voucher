@@ -32,6 +32,22 @@ class VoucherService
         return $voucher;
     }
 
+    private function isValidRedeemer(?Model $redeemer): bool
+    {
+        if (is_null($redeemer)) {
+            return false;
+        }
+        return in_array(\App\Concerns\RedeemerTrait::class, class_uses_recursive($redeemer));
+    }
+
+    private function isValidVoucherAble(?Model $voucherAble): bool
+    {
+        if (is_null($voucherAble)) {
+            return false;
+        }
+        return in_array(\App\Concerns\VoucherAbleTrait::class, class_uses_recursive($voucherAble));
+    }
+
     private function sanitizeExpiredAt(Carbon $expiredAt): Carbon
     {
         if ($expiredAt->lessThan(now())) {
@@ -56,7 +72,7 @@ class VoucherService
     private function storeRedeemers(Voucher $voucher, Collection|array $redeemers = [])
     {
         foreach ($redeemers as $redeemer) {
-            if (!in_array(\App\Concerns\RedeemerTrait::class, class_uses_recursive($redeemer))) {
+            if (!$this->isValidRedeemer($redeemer)) {
                 abort(400, 'voucherAble should be used VoucherAbleTrait');
             }
             $redeemer->vouchers()->save($voucher);
@@ -66,7 +82,7 @@ class VoucherService
     private function storeVoucherAbles(Voucher $voucher, Collection|array $voucherAbles = [])
     {
         foreach ($voucherAbles as $voucherAble) {
-            if (!in_array(\App\Concerns\VoucherAbleTrait::class, class_uses_recursive($voucherAble))) {
+            if (!$this->isValidVoucherAble($voucherAble)) {
                 abort(400, 'voucherAble should be used VoucherAbleTrait');
             }
             $voucherAble->vouchers()->save($voucher);
