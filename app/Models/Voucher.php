@@ -58,6 +58,13 @@ class Voucher extends Model
         return $query->where('code', $code);
     }
 
+    public function scopeNotExpired(Builder $query): Builder
+    {
+        return $query->where(function ($q) {
+            $q->whereNull('expired_at')->orWhere('expired_at', ">=", now());
+        });
+    }
+
     public function scopeNotExpiredByCode(Builder $query, string $code): Builder
     {
         return $query->byCode($code)->where(function ($q) {
