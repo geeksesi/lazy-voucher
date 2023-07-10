@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 class Voucher extends Model
 {
@@ -65,10 +67,21 @@ class Voucher extends Model
         });
     }
 
-    public function scopeNotExpiredByCode(Builder $query, string $code): Builder
+    public function scopeByRedeemers(Builder $query, Model $redeemer): Builder
     {
-        return $query->byCode($code)->where(function ($q) {
-            $q->whereNull('expired_at')->orWhere('expired_at', ">=", now());
+        return $query->where('id', function ($q) use ($redeemer) {
+            $q->select('voucher_id')->from('redeemers')->where(function ($q) use ($redeemer) {
+                $q->where('redeemer_id', $redeemer->id)->where("redeemer_type", get_class($redeemer));
+            });
+        });
+    }
+
+    public function scopeByVoucherAbles(Builder $query, Model $voucherAble): Builder
+    {
+        return $query->where('id', function ($q) use ($voucherAble) {
+            $q->select('voucher_id')->from('voucher_ables')->where(function ($q) use ($voucherAble) {
+                $q->where("voucher_able_id", $voucherAble->id)->where("voucher_able_type", get_class($voucherAble));
+            });
         });
     }
 }

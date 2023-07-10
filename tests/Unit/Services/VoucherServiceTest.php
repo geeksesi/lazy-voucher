@@ -3,6 +3,7 @@
 namespace Tests\Unit\Services;
 
 use App\Enums\VoucherAmountTypeEnum;
+use App\Enums\VoucherStatusEnum;
 use App\Enums\VoucherUsageLimitTypeEnum;
 use App\Models\Product;
 use App\Models\User;
@@ -85,5 +86,51 @@ class VoucherServiceTest extends TestCase
             'voucher_able_id' => $products[0]->id,
             'voucher_able_type' => Product::class
         ]);
+    }
+
+    public function test_active_global_voucher_should_return_active_on_status()
+    {
+        $voucher = $this->service->create(10, VoucherAmountTypeEnum::PERCENTAGE, now()->addDay());
+
+        $this->assertEquals(VoucherStatusEnum::ACTIVE, $this->service->status($voucher->code));
+    }
+
+    public function test_expired_voucher_should_return_invalid()
+    {
+        $voucher = Voucher::factory()->create(['expired_at' => now()->subDay()]);
+
+        $this->assertEquals(VoucherStatusEnum::INVALID, $this->service->status($voucher->code));
+    }
+
+    public function test_active_voucher_with_special_voucher_able_should_return_active()
+    {
+        $products = Product::factory()->count(3)->create();
+
+        $voucher = $this->service->create(10, VoucherAmountTypeEnum::PERCENTAGE, now()->addDay(), null, null, VoucherUsageLimitTypeEnum::NO_LIMIT, [], $products);
+
+        $this->assertEquals(VoucherStatusEnum::ACTIVE, $this->service->status($voucher->code, null, $products[0]));
+    }
+
+    public function test_active_voucher_with_special_voucher_able_and_redeemer_should_return_active()
+    {
+        $products = Product::factory()->count(3)->create();
+        $users = User::factory()->count(3)->create();
+
+
+        $voucher = $this->service->create(10, VoucherAmountTypeEnum::PERCENTAGE, now()->addDay(), null, null, VoucherUsageLimitTypeEnum::NO_LIMIT, $users, $products);
+
+        $this->assertEquals(VoucherStatusEnum::ACTIVE, $this->service->status($voucher->code, $users[1], $products[0]));
+    }
+
+    public function test_active_voucher_with_wrong_special_voucher_able_or_redeemer_should_return_invalid()
+    {
+        $products = Product::factory()->count(3)->create();
+        $users = User::factory()->count(3)->create();
+
+
+        $voucher = $this->service->create(10, VoucherAmountTypeEnum::PERCENTAGE, now()->addDay(), null, null, VoucherUsageLimitTypeEnum::NO_LIMIT, $users, $products);
+
+        $this->assertEquals(VoucherStatusEnum::INVALID, $this->service->status($voucher->code, User::factory()->create(), $products[0]));
+        $this->assertEquals(VoucherStatusEnum::INVALID, $this->service->status($voucher->code, $users[1], Product::factory()->create()));
     }
 }

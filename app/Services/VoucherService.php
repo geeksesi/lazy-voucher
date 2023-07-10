@@ -3,9 +3,11 @@
 namespace App\Services;
 
 use App\Enums\VoucherAmountTypeEnum;
+use App\Enums\VoucherStatusEnum;
 use App\Enums\VoucherUsageLimitTypeEnum;
 use App\Models\Voucher;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -31,6 +33,28 @@ class VoucherService
 
         return $voucher;
     }
+
+    public function status(string $code, ?Model $redeemer = null, ?Model $voucherAble = null): VoucherStatusEnum
+    {
+        try {
+            $voucher = Voucher::byCode($code)->notExpired();
+
+            if ($this->isValidRedeemer($redeemer)) {
+                $voucher->byRedeemers($redeemer);
+            }
+            if ($this->isValidVoucherAble($voucherAble)) {
+                $voucher->byVoucherAbles($voucherAble);
+            }
+
+            $voucher->firstOrFail();
+
+            return VoucherStatusEnum::ACTIVE;
+        } catch (\Throwable $th) {
+            return VoucherStatusEnum::INVALID;
+        }
+    }
+
+
 
     private function isValidRedeemer(?Model $redeemer): bool
     {
