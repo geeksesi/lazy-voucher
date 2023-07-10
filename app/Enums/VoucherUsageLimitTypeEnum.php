@@ -16,6 +16,14 @@ enum VoucherUsageLimitTypeEnum: string
         };
     }
 
+    public function hasLimit()
+    {
+        return match ($this) {
+            self::NO_LIMIT => false,
+            default => true
+        };
+    }
+
     private function sanitizeLimit(?int $limit): int
     {
         if (is_null($limit)) {

@@ -5,6 +5,8 @@ namespace App\Services;
 use App\Enums\VoucherAmountTypeEnum;
 use App\Enums\VoucherStatusEnum;
 use App\Enums\VoucherUsageLimitTypeEnum;
+use App\Models\UsedVoucher;
+use App\Models\User;
 use App\Models\Voucher;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
@@ -34,20 +36,22 @@ class VoucherService
         return $voucher;
     }
 
-    public function status(string $code, ?Model $redeemer = null, ?Model $voucherAble = null): VoucherStatusEnum
+    public function status(string $code, User $user, ?Model $redeemer = null, ?Model $voucherAble = null): VoucherStatusEnum
     {
         try {
-            $voucher = Voucher::byCode($code)->notExpired();
+            $voucherQuery = Voucher::byCode($code)->notExpired();
 
             if ($this->isValidRedeemer($redeemer)) {
-                $voucher->byRedeemers($redeemer);
+                $voucherQuery->byRedeemers($redeemer);
             }
             if ($this->isValidVoucherAble($voucherAble)) {
-                $voucher->byVoucherAbles($voucherAble);
+                $voucherQuery->byVoucherAbles($voucherAble);
             }
+            $voucher = $voucherQuery->firstOrFail();
 
-            $voucher->firstOrFail();
-
+            if (!$this->isUsableVoucher($voucher, $user)) {
+                throw 'usage limit';
+            }
             return VoucherStatusEnum::ACTIVE;
         } catch (\Throwable $th) {
             return VoucherStatusEnum::INVALID;
@@ -55,6 +59,20 @@ class VoucherService
     }
 
 
+    private function isUsableVoucher(Voucher $voucher, $user): bool
+    {
+        if (!$voucher->usage_limit_type->hasLimit()) {
+            return true;
+        }
+
+        $query = UsedVoucher::query();
+        $query = match ($voucher->usage_limit_type) {
+            VoucherUsageLimitTypeEnum::PER_REDEEMER => $query->voucherId($voucher->id)->userId($user->id),
+            default => $query->voucherId($voucher->id),
+        };
+
+        return $query->count() < $voucher->usage_limit;
+    }
 
     private function isValidRedeemer(?Model $redeemer): bool
     {
