@@ -5,6 +5,7 @@ namespace Tests\Unit\Services;
 use App\Enums\VoucherAmountTypeEnum;
 use App\Enums\VoucherStatusEnum;
 use App\Enums\VoucherUsageLimitTypeEnum;
+use App\Exceptions\VoucherIsInvalidException;
 use App\Models\Product;
 use App\Models\UsedVoucher;
 use App\Models\User;
@@ -186,5 +187,37 @@ class VoucherServiceTest extends TestCase
         UsedVoucher::factory()->for($voucher)->for($users[1])->create();
 
         $this->assertEquals(VoucherStatusEnum::INVALID, $this->service->status($voucher->code, $users[1], $users[1], $products[0]));
+    }
+
+    public function test_voucher_with_remaining_usage_limit_could_be_use()
+    {
+        $products = Product::factory()->count(3)->create();
+        $users = User::factory()->count(3)->create();
+
+
+        $voucher = $this->service->create(10, VoucherAmountTypeEnum::PERCENTAGE, now()->addDay(), null, 1, VoucherUsageLimitTypeEnum::PER_REDEEMER, $users, $products);
+
+        $this->service->use($voucher->code, $users[1]);
+
+        $this->assertDatabaseCount(app(UsedVoucher::class)->getTable(), 1);
+        $this->assertDatabaseHas(app(UsedVoucher::class)->getTable(), [
+            "user_id" => $users[1]->id,
+            'voucher_id' => $voucher->id
+        ]);
+    }
+
+    public function test_voucher_without_remaining_usage_limit_could_not_be_used()
+    {
+        $products = Product::factory()->count(3)->create();
+        $users = User::factory()->count(3)->create();
+
+
+        $voucher = $this->service->create(10, VoucherAmountTypeEnum::PERCENTAGE, now()->addDay(), null, 1, VoucherUsageLimitTypeEnum::PER_REDEEMER, $users, $products);
+
+        UsedVoucher::factory()->for($voucher)->for($users[1])->create();
+        $this->expectException(VoucherIsInvalidException::class);
+        $this->service->use($voucher->code, $users[1]);
+
+        $this->assertDatabaseCount(app(UsedVoucher::class)->getTable(), 1);
     }
 }

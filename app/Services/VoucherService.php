@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\VoucherAmountTypeEnum;
 use App\Enums\VoucherStatusEnum;
 use App\Enums\VoucherUsageLimitTypeEnum;
+use App\Exceptions\VoucherIsInvalidException;
 use App\Models\UsedVoucher;
 use App\Models\User;
 use App\Models\Voucher;
@@ -58,6 +59,15 @@ class VoucherService
         }
     }
 
+    public function use(string $code, User $user): UsedVoucher
+    {
+        $voucher = Voucher::byCode($code)->notExpired()->firstOrFail();
+        if (!$this->isUsableVoucher($voucher, $user)) {
+            throw new VoucherIsInvalidException();
+        }
+
+        return UsedVoucher::create(['user_id' => $user->id, 'voucher_id' => $voucher->id]);
+    }
 
     private function isUsableVoucher(Voucher $voucher, $user): bool
     {

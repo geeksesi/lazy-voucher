@@ -11,6 +11,12 @@ class UsedVoucher extends Model
 {
     use HasFactory;
 
+
+    protected $fillable = [
+        'user_id',
+        'voucher_id'
+    ];
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
