@@ -220,4 +220,35 @@ class VoucherServiceTest extends TestCase
 
         $this->assertDatabaseCount(app(UsedVoucher::class)->getTable(), 1);
     }
+
+
+    public function test_could_be_delete_voucher_and_all_related_data_will_delete_too()
+    {
+        $products = Product::factory()->count(3)->create();
+        $users = User::factory()->count(3)->create();
+
+
+        $voucher = $this->service->create(10, VoucherAmountTypeEnum::PERCENTAGE, now()->addDay(), null, 1, VoucherUsageLimitTypeEnum::PER_REDEEMER, $users, $products);
+
+        $this->service->use($voucher->code, $users[1]);
+
+        $this->service->delete($voucher->code);
+
+        $this->assertDatabaseMissing(app(UsedVoucher::class)->getTable(), [
+            "user_id" => $users[1]->id,
+            'voucher_id' => $voucher->id
+        ]);
+
+        $this->assertDatabaseMissing('redeemers', [
+            'voucher_id' => $voucher->id
+        ]);
+
+        $this->assertDatabaseMissing('voucher_ables', [
+            'voucher_id' => $voucher->id
+        ]);
+
+        $this->assertDatabaseMissing(app(Voucher::class)->getTable(), [
+            'id' => $voucher->id
+        ]);
+    }
 }

@@ -69,6 +69,15 @@ class VoucherService
         return UsedVoucher::create(['user_id' => $user->id, 'voucher_id' => $voucher->id]);
     }
 
+    public function delete(string $code): Voucher
+    {
+        $voucher = Voucher::byCode($code)->firstOrFail();
+
+        $voucher->delete();
+
+        return $voucher;
+    }
+
     private function isUsableVoucher(Voucher $voucher, $user): bool
     {
         if (!$voucher->usage_limit_type->hasLimit()) {
