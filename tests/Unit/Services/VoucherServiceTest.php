@@ -4,6 +4,8 @@ namespace Tests\Unit\Services;
 
 use App\Enums\VoucherAmountTypeEnum;
 use App\Enums\VoucherUsageLimitTypeEnum;
+use App\Models\Product;
+use App\Models\User;
 use App\Models\Voucher;
 use App\Services\VoucherService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -57,5 +59,31 @@ class VoucherServiceTest extends TestCase
         }
 
         $this->assertDatabaseCount(app(Voucher::class)->getTable(), 5);
+    }
+
+    public function test_voucher_could_have_some_redeemers_like_user()
+    {
+        $users = User::factory()->count(3)->create();
+        $voucher = $this->service->create(10, VoucherAmountTypeEnum::PERCENTAGE, now()->addDay(), null, null, VoucherUsageLimitTypeEnum::NO_LIMIT, $users);
+        $this->assertDatabaseCount(app(Voucher::class)->getTable(), 1);
+        $this->assertDatabaseCount('redeemers', 3);
+        $this->assertDatabaseHas('redeemers', [
+            'voucher_id' => $voucher->id,
+            'redeemer_id' => $users[0]->id,
+            'redeemer_type' => User::class
+        ]);
+    }
+
+    public function test_voucher_could_have_some_voucher_ables_like_product()
+    {
+        $products = Product::factory()->count(3)->create();
+        $voucher = $this->service->create(10, VoucherAmountTypeEnum::PERCENTAGE, now()->addDay(), null, null, VoucherUsageLimitTypeEnum::NO_LIMIT, [], $products);
+        $this->assertDatabaseCount(app(Voucher::class)->getTable(), 1);
+        $this->assertDatabaseCount('voucher_ables', 3);
+        $this->assertDatabaseHas('voucher_ables', [
+            'voucher_id' => $voucher->id,
+            'voucher_able_id' => $products[0]->id,
+            'voucher_able_type' => Product::class
+        ]);
     }
 }

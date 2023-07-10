@@ -7,6 +7,7 @@ use App\Enums\VoucherUsageLimitTypeEnum;
 use App\Models\Voucher;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class VoucherService
@@ -22,6 +23,11 @@ class VoucherService
         $data['expired_at'] = $this->sanitizeExpiredAt($expiredAt);
 
         $voucher = Voucher::create($data);
+
+        DB::transaction(function () use ($voucher, $redeemers, $voucherAbles) {
+            $this->storeRedeemers($voucher, $redeemers);
+            $this->storeVoucherAbles($voucher, $voucherAbles);
+        });
 
         return $voucher;
     }
@@ -45,5 +51,25 @@ class VoucherService
     private function sanitizeCode(string $code): string
     {
         return str_replace(" ", "-", $code);
+    }
+
+    private function storeRedeemers(Voucher $voucher, Collection|array $redeemers = [])
+    {
+        foreach ($redeemers as $redeemer) {
+            if (!in_array(\App\Concerns\RedeemerTrait::class, class_uses_recursive($redeemer))) {
+                abort(400, 'voucherAble should be used VoucherAbleTrait');
+            }
+            $redeemer->vouchers()->save($voucher);
+        }
+    }
+
+    private function storeVoucherAbles(Voucher $voucher, Collection|array $voucherAbles = [])
+    {
+        foreach ($voucherAbles as $voucherAble) {
+            if (!in_array(\App\Concerns\VoucherAbleTrait::class, class_uses_recursive($voucherAble))) {
+                abort(400, 'voucherAble should be used VoucherAbleTrait');
+            }
+            $voucherAble->vouchers()->save($voucher);
+        }
     }
 }
